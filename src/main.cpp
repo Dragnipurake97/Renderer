@@ -7,8 +7,8 @@
 // Constants
 const TGAColour white = TGAColour(255, 255, 255, 255);
 const TGAColour red = TGAColour(255, 0, 0, 255);
-const int WIDTH = 1000;
-const int HEIGHT = 1000;
+const int WIDTH = 600;
+const int HEIGHT = 600;
 
 // Prototypes
 void drawLine(int x0, int y0, int x1, int y1, TGAImage &image, TGAColour colour);
@@ -128,7 +128,6 @@ void drawTriangle(Vec3f v0, Vec3f v1, Vec3f v2, TGAImage &image, TGAColour colou
 
 void drawTriangleTop(Vec3f v0, Vec3f v1, Vec3f v2, TGAImage &image, TGAColour colour)
 {
-
 	// Make sure are left and right
 	if (v1.x > v2.x)
 		std::swap(v1, v2);
@@ -142,14 +141,18 @@ void drawTriangleTop(Vec3f v0, Vec3f v1, Vec3f v2, TGAImage &image, TGAColour co
 
 
 	// Find left and right slopes
-	left_slope = (v0.x - v1.x) / (v0.y - v1.y);
-	right_slope = (v0.x - v2.x) / (v0.y - v2.y);
+	left_slope = (v0.x - v1.x) / (y_top - y_bottom); //(v0.y - v1.y);
+	right_slope = (v0.x - v2.x) / (y_top - y_bottom); //(v0.y - v2.y);
 
-	// If the difference between top and bottom is neglible, ignore to reduce accuracy errors
-	if (abs(v0.y - v2.y <= 1) || abs(v0.y - v1.y <= 1))
-	{
-		return;
-	}
+	//if the difference between top and bottom is neglible, ignore to reduce accuracy errors
+	//if (abs(v0.y - v2.y <= 2))
+	//{
+	//	drawLine(v0.x, v0.y, v1.x, v1.y, image, colour);
+	//	drawLine(v1.x, v1.y, v2.x, v2.y, image, colour);
+	//	drawLine(v2.x, v2.y, v0.x, v0.y, image, colour);
+	//	return;
+	//}
+
 
 	if (isDebugging)
 	{
@@ -190,13 +193,19 @@ void drawTriangleBottom(Vec3f v0, Vec3f v1, Vec3f v2, TGAImage &image, TGAColour
 	int y_bottom = v2.y;
 
 	// Find left and right slopes
-	left_slope = (v0.x - v2.x) / (v0.y - v2.y);
-	right_slope = (v1.x - v2.x) / (v1.y - v2.y);
+	left_slope = (v0.x - v2.x) / (y_top - y_bottom); //(v0.y - v2.y);
+	right_slope = (v1.x - v2.x) / (y_top - y_bottom); //(v1.y - v2.y);
 
-	if (abs(v0.y - v2.y <= 1) || abs(v1.y - v2.y <= 1))
-	{
-		return;
-	}
+
+	//if the difference between top and bottom is neglible, ignore to reduce accuracy errors
+	//if (abs(v0.y - v2.y <= 2))
+	//{
+	//	drawLine(v0.x, v0.y, v1.x, v1.y, image, colour);
+	//	drawLine(v1.x, v1.y, v2.x, v2.y, image, colour);
+	//	drawLine(v2.x, v2.y, v0.x, v0.y, image, colour);
+	//	return;
+	//}
+
 
 	if (isDebugging)
 	{
@@ -216,6 +225,7 @@ void drawTriangleBottom(Vec3f v0, Vec3f v1, Vec3f v2, TGAImage &image, TGAColour
 
 		if (isDebugging)
 			std::cout << "Line Drawn: (" << (int)x_start << ", " << y << "), (" << (int)x_end << ", " << y << ")" << std::endl;
+
 		// Apply slopes
 		x_start += left_slope;
 		x_end += right_slope;
