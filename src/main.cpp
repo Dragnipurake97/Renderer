@@ -17,7 +17,6 @@ void drawModel(Model *model, TGAImage &image);
 void drawTriangle(Vec3f v0, Vec3f v1, Vec3f v2, TGAImage &image, TGAColour colour);
 void drawTriangleTop(Vec3f v0, Vec3f v1, Vec3f v2, TGAImage &image, TGAColour colour);
 void drawTriangleBottom(Vec3f v0, Vec3f v1, Vec3f v2, TGAImage &image, TGAColour colour);
-void testTriangles();
 
 //float zbuf[WIDTH][HEIGHT];
 bool isDebugging = false;
@@ -25,41 +24,38 @@ bool isDebugging = false;
 int main() 
 {
 	TGAImage image(WIDTH, HEIGHT, TGAImage::RGB);
-	
-
-	Vec3f v0 = { 100, (float)400.11, 0 };
-	Vec3f v1 = { 300, 400, 0 };
-	Vec3f v2 = { 200, (float)200.45, 0 };
 
 	Model model("obj/african_head.obj");
 	drawModel(&model, image);
 	
-	//isDebugging = true;
-	//drawTriangle(v0, v1, v2, image, red);
-
 	image.flip_vertically();
 	image.write_tga_file("render.tga");
 	std::cout << "Render Saved" << std::endl;
-
-	//testTriangles();
 
 	return 0;
 }
 
 void drawModel(Model *model, TGAImage &image)
 {
+	Vec3f lightDir(0, 0, -1);
 
 	for (int i = 0; i < model->nfaces(); i++)
 	{
 		std::vector<int> face = model->face(i);
 		Vec3f screen_points[3];
+		Vec3f world_points[3];
 		for (int j = 0; j < 3; j++)
 		{
 			Vec3f v = model->vert(face[j]);
-			screen_points[j] = Vec3f((v.x + 1.) * WIDTH / 2., (v.y + 1.) * HEIGHT / 2., v.z);
+			screen_points[j] = Vec3f((v.x + 1.) * WIDTH / 2., (v.y + 1.) * HEIGHT / 2., v.z); // Convert to screen space
+			world_points[j] = v;
 		}
-
-		drawTriangle(screen_points[0], screen_points[1], screen_points[2], image, TGAColour(rand() % 255, rand() % 255, rand() % 255, 255));
+		// Diffuse Lighting
+		Vec3f norm = (world_points[2] - world_points[0]) ^ (world_points[1] - world_points[0]); // Get orthagonal vector (normal)
+		norm.normalize();
+		float diffuse = norm * lightDir;
+		if(diffuse > 0)
+			drawTriangle(screen_points[0], screen_points[1], screen_points[2], image, TGAColour(255 * diffuse, 255 * diffuse, 255 * diffuse, 255));
 	}
 }
 
@@ -144,16 +140,6 @@ void drawTriangleTop(Vec3f v0, Vec3f v1, Vec3f v2, TGAImage &image, TGAColour co
 	left_slope = (v0.x - v1.x) / (y_top - y_bottom); //(v0.y - v1.y);
 	right_slope = (v0.x - v2.x) / (y_top - y_bottom); //(v0.y - v2.y);
 
-	//if the difference between top and bottom is neglible, ignore to reduce accuracy errors
-	//if (abs(v0.y - v2.y <= 2))
-	//{
-	//	drawLine(v0.x, v0.y, v1.x, v1.y, image, colour);
-	//	drawLine(v1.x, v1.y, v2.x, v2.y, image, colour);
-	//	drawLine(v2.x, v2.y, v0.x, v0.y, image, colour);
-	//	return;
-	//}
-
-
 	if (isDebugging)
 	{
 		std::cout << "\n\nLeft Slope: " << left_slope << std::endl;
@@ -195,17 +181,6 @@ void drawTriangleBottom(Vec3f v0, Vec3f v1, Vec3f v2, TGAImage &image, TGAColour
 	// Find left and right slopes
 	left_slope = (v0.x - v2.x) / (y_top - y_bottom); //(v0.y - v2.y);
 	right_slope = (v1.x - v2.x) / (y_top - y_bottom); //(v1.y - v2.y);
-
-
-	//if the difference between top and bottom is neglible, ignore to reduce accuracy errors
-	//if (abs(v0.y - v2.y <= 2))
-	//{
-	//	drawLine(v0.x, v0.y, v1.x, v1.y, image, colour);
-	//	drawLine(v1.x, v1.y, v2.x, v2.y, image, colour);
-	//	drawLine(v2.x, v2.y, v0.x, v0.y, image, colour);
-	//	return;
-	//}
-
 
 	if (isDebugging)
 	{
@@ -294,49 +269,4 @@ void drawLine(int x0, int y0, int x1, int y1, TGAImage &image, TGAColour colour)
 			error2 -= dx * 2;
 		}
 	}
-}
-
-void testTriangles()
-{
-
-	// Flat Topped Triangle
-	 
-	TGAImage flatTopImage(WIDTH, HEIGHT, TGAImage::RGB);
-
-	Vec3f flatTopV0 = { 40, 20, 0 };
-	Vec3f flatTopV1 = { 30, 50, 0 };
-	Vec3f flatTopV2 = { 50, 50, 0 };
-
-	drawTriangle(flatTopV0, flatTopV1, flatTopV2, flatTopImage, white);
-
-	flatTopImage.flip_vertically();
-	flatTopImage.write_tga_file("tests/FlatTop.tga");
-
-	// Flat Bottomed Triangle
-
-	TGAImage flatBottomImage(WIDTH, HEIGHT, TGAImage::RGB);
-
-	Vec3f flatBottomV0 = { 40, 50, 0 };
-	Vec3f flatBottomV1 = { 30, 20, 0 };
-	Vec3f flatBottomV2 = { 50, 20, 0 };
-
-	drawTriangle(flatBottomV0, flatBottomV1, flatBottomV2, flatBottomImage, white);
-
-	flatBottomImage.flip_vertically();
-	flatBottomImage.write_tga_file("tests/FlatBottom.tga");
-
-	// Complex Triangle
-
-	TGAImage complexImage(WIDTH, HEIGHT, TGAImage::RGB);
-
-	Vec3f complexV0 = { 40, 20, 0 };
-	Vec3f complexV1 = { 30, 10, 0 };
-	Vec3f complexV2 = { 20, 50, 0 };
-
-	drawTriangle(complexV0, complexV1, complexV2, complexImage, white);
-
-	complexImage.flip_vertically();
-	complexImage.write_tga_file("tests/Complex.tga");
-
-	std::cout << "Tests Finished" << std::endl;
 }
