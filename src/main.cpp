@@ -17,13 +17,24 @@ void drawModel(Model *model, TGAImage &image);
 void drawTriangle(Vec3f v0, Vec3f v1, Vec3f v2, TGAImage &image, TGAColour colour);
 void drawTriangleTop(Vec3f v0, Vec3f v1, Vec3f v2, TGAImage &image, TGAColour colour);
 void drawTriangleBottom(Vec3f v0, Vec3f v1, Vec3f v2, TGAImage &image, TGAColour colour);
+void resetZBuf();
 
-//float zbuf[WIDTH][HEIGHT];
+float zbuf[WIDTH * HEIGHT];
 bool isDebugging = false;
 
 int main() 
 {
 	TGAImage image(WIDTH, HEIGHT, TGAImage::RGB);
+
+	resetZBuf();
+
+	Vec3f A = Vec3f(110, 120, 0.512);
+	Vec3f B = Vec3f(120, 150, 0.581);
+	Vec3f C = Vec3f(130, 130, 0.612);
+	Vec3f D = Vec3f(150, 160, 0.654);
+
+	//drawTriangle(A, B, C, image, white);
+	//drawTriangle(B, C, D, image, red);
 
 	Model model("obj/african_head.obj");
 	drawModel(&model, image);
@@ -54,7 +65,7 @@ void drawModel(Model *model, TGAImage &image)
 		Vec3f norm = (world_points[2] - world_points[0]) ^ (world_points[1] - world_points[0]); // Get orthagonal vector (normal)
 		norm.normalize();
 		float diffuse = norm * lightDir;
-		if(diffuse > 0)
+		if (diffuse > 0)
 			drawTriangle(screen_points[0], screen_points[1], screen_points[2], image, TGAColour(255 * diffuse, 255 * diffuse, 255 * diffuse, 255));
 	}
 }
@@ -81,41 +92,27 @@ void drawTriangle(Vec3f v0, Vec3f v1, Vec3f v2, TGAImage &image, TGAColour colou
 		}
 	}
 
-	if (isDebugging)
-	{
-		std::cout << "0: " << points[0] << std::endl;
-		std::cout << "1: " << points[1] << std::endl;
-		std::cout << "2: " << points[2] << std::endl;
-	}
 	v0 = points[0];
 	v1 = points[1];
 	v2 = points[2];
 
-
 	// If flat on top
 	if (points[0].y == points[1].y)
 	{
-		if (isDebugging)
-			std::cout << "Flat top" << std::endl;
 		drawTriangleBottom(points[0], points[1], points[2], image, colour);
 	}
 	// If flat on bottom
 	else if(points[1].y == points[2].y)
 	{
-		if (isDebugging)
-			std::cout << "Flat Bottom" << std::endl;
 		drawTriangleTop(points[0], points[1], points[2], image, colour);
 	}
 	// Else triangle needs to be split
 	else
 	{
-		if (isDebugging)
-			std::cout << "Complex" << std::endl;
 		// Find new vertex to split triangle
 		float x = v0.x + ((v1.y - v0.y) / (v2.y - v0.y)) * (v2.x - v0.x);
 		float z = v0.z + ((v1.y - v0.y) / (v2.y - v0.y)) * (v2.z - v0.z);
-		if (isDebugging)
-			std::cout << "x: " << x << ", y: " << v1.y << ", z: " << z << std::endl;
+
 		temp = { x, v1.y, z };
 		drawTriangleTop(v0, temp, v1, image, colour);
 		drawTriangleBottom(v1, temp, v2, image, colour);
@@ -134,33 +131,39 @@ void drawTriangleTop(Vec3f v0, Vec3f v1, Vec3f v2, TGAImage &image, TGAColour co
 	float x_end = v2.x;
 	int y_top = v0.y;
 	int y_bottom = v2.y;
-
+	float z_left_slope;
+	float z_right_slope;
+	float z_end = v2.z;
+	float z_start = v1.z;
+	float current_z = z_start;
 
 	// Find left and right slopes
-	left_slope = (v0.x - v1.x) / (y_top - y_bottom); //(v0.y - v1.y);
-	right_slope = (v0.x - v2.x) / (y_top - y_bottom); //(v0.y - v2.y);
-
-	if (isDebugging)
-	{
-		std::cout << "\n\nLeft Slope: " << left_slope << std::endl;
-		std::cout << "Right Slope: " << right_slope << std::endl;
-		std::cout << "x_start: " << x_start << std::endl;
-		std::cout << "x_end: " << x_end << std::endl;
-		std::cout << "y_top: " << y_top << std::endl;
-		std::cout << "y_bottom: " << y_bottom << std::endl;
-	}
-	
+	left_slope = (v0.x - v1.x) / (y_top - y_bottom); 
+	right_slope = (v0.x - v2.x) / (y_top - y_bottom); 
+	z_left_slope = (v0.z - v1.z) / (y_top - y_bottom);
+	z_right_slope = (v0.z - v2.z) / (y_top - y_bottom);
 
 	// Draw scanlines across each y to fill triangle
 	for (int y = y_bottom; y <= y_top; y++)
 	{
-		drawLine((int)x_start, y, (int)x_end, y, image, colour);
+		for (int x = x_start; x <= x_end; x++)
+		{
+			if ((int)zbuf[(y * WIDTH) + x] * 100 < (int)current_z * 100) // Force 3 dp comparison
+			{
+				image.set(x, y, colour);
+				zbuf[(y * WIDTH) + x] = current_z;
+			};
+			current_z += (z_end - z_start) / ((int)x_end - (int)x_start);
+		}
 
-		if (isDebugging)
-			std::cout << "Line Drawn: (" << (int)x_start << ", " << y << "), (" <<  (int)x_end << ", " << y << ")" << std::endl;
 		// Apply slopes
 		x_start += left_slope;
 		x_end += right_slope;
+
+		z_start += z_left_slope;
+		z_end += z_right_slope;
+
+		current_z = z_start;
 	}
 }
 
@@ -177,33 +180,39 @@ void drawTriangleBottom(Vec3f v0, Vec3f v1, Vec3f v2, TGAImage &image, TGAColour
 	float x_end = v2.x;
 	int y_top = v0.y;
 	int y_bottom = v2.y;
+	float z_left_slope;
+	float z_right_slope;
+	float z_start = v2.z;
+	float z_end = v2.z;
+	float current_z = z_start;
 
 	// Find left and right slopes
-	left_slope = (v0.x - v2.x) / (y_top - y_bottom); //(v0.y - v2.y);
-	right_slope = (v1.x - v2.x) / (y_top - y_bottom); //(v1.y - v2.y);
-
-	if (isDebugging)
-	{
-		std::cout << "\n\nLeft Slope: " << left_slope << std::endl;
-		std::cout << "Right Slope: " << right_slope << std::endl;
-		std::cout << "x_start: " << x_start << std::endl;
-		std::cout << "x_end: " << x_end << std::endl;
-		std::cout << "y_top: " << y_top << std::endl;
-		std::cout << "y_bottom: " << y_bottom << std::endl;
-	}
-	
+	left_slope = (v0.x - v2.x) / (y_top - y_bottom); 
+	right_slope = (v1.x - v2.x) / (y_top - y_bottom);
+	z_left_slope = (v0.z - v2.z) / (y_top - y_bottom);
+	z_right_slope = (v1.z - v2.z) / (y_top - y_bottom);
 
 	// Draw scanlines across each y to fill triangle
 	for (int y = y_bottom; y <= y_top; y++)
 	{
-		drawLine((int)x_start, y, (int)x_end, y, image, colour);
-
-		if (isDebugging)
-			std::cout << "Line Drawn: (" << (int)x_start << ", " << y << "), (" << (int)x_end << ", " << y << ")" << std::endl;
+		for (int x = x_start; x <= x_end; x++)
+		{
+			if ((int)zbuf[(y * WIDTH) + x] * 100 < (int)current_z * 100)
+			{
+				image.set(x, y, colour);
+				zbuf[(y * WIDTH) + x] = current_z;
+			}
+			current_z += (z_end - z_start) / ((int)x_end - (int)x_start);
+		}
 
 		// Apply slopes
 		x_start += left_slope;
 		x_end += right_slope;
+
+		z_start += z_left_slope;
+		z_end += z_right_slope;
+
+		current_z = z_start;
 	}
 }
 
@@ -267,6 +276,17 @@ void drawLine(int x0, int y0, int x1, int y1, TGAImage &image, TGAColour colour)
 		{
 			y += (y1 > y0 ? 1 : -1);
 			error2 -= dx * 2;
+		}
+	}
+}
+
+void resetZBuf()
+{
+	for (int y = 0; y < HEIGHT; y++)
+	{
+		for (int x = 0; x < WIDTH; x++)
+		{
+			zbuf[(y * HEIGHT) + x] = -1.0f;
 		}
 	}
 }
