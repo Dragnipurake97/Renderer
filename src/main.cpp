@@ -8,8 +8,8 @@
 // Constants
 const TGAColour white = TGAColour(255, 255, 255, 255);
 const TGAColour red = TGAColour(255, 0, 0, 255);
-const int WIDTH = 600;
-const int HEIGHT = 600;
+const int WIDTH = 800;
+const int HEIGHT = 800;
 
 // Prototypes
 void drawLine(int x0, int y0, int x1, int y1, TGAImage &image, TGAColour colour);
@@ -23,7 +23,6 @@ bool loadTexture(std::string filename, TGAImage& texture);
 
 // Globals
 float zbuf[WIDTH * HEIGHT];
-bool isDebugging = false;
 
 int main() 
 {
@@ -83,8 +82,6 @@ void drawModel(Model *model, TGAImage &image)
 
 void drawTriangle(Vec3f v0, Vec3f v1, Vec3f v2, Vec2i vt0, Vec2i vt1, Vec2i vt2, TGAImage &image, TGAImage texture, float diffuse)
 {
-
-
 	Vec3f points[3] = { v0, v1, v2 };
 	Vec2i texture_coords[3] = { vt0, vt1, vt2 };
 	Vec3f temp;
@@ -108,9 +105,9 @@ void drawTriangle(Vec3f v0, Vec3f v1, Vec3f v2, Vec2i vt0, Vec2i vt1, Vec2i vt2,
 		}
 	}
 
-	v0 = points[0];
+	v0 = points[0]; // Top
 	v1 = points[1];
-	v2 = points[2];
+	v2 = points[2]; // Bottom
 
 	if ((int)(v0.y + 0.5f) == (int)(v2.y + 0.5f))
 		return;
@@ -119,11 +116,11 @@ void drawTriangle(Vec3f v0, Vec3f v1, Vec3f v2, Vec2i vt0, Vec2i vt1, Vec2i vt2,
 	vt1 = texture_coords[1];
 	vt2 = texture_coords[2];
 
-	if (points[0].y == points[1].y) // If flat on top
+	if ((int)points[0].y == (int)points[1].y) // If flat on top
 	{
 		drawTriangleBottom(points[0], points[1], points[2], texture_coords[0], texture_coords[1], texture_coords[2], image, texture, diffuse);
 	}
-	else if(points[1].y == points[2].y) // If flat on bottom
+	else if((int)points[1].y == (int)points[2].y) // If flat on bottom
 	{
 		drawTriangleTop(points[0], points[1], points[2], texture_coords[0], texture_coords[1], texture_coords[2], image, texture, diffuse);
 	}
@@ -135,14 +132,18 @@ void drawTriangle(Vec3f v0, Vec3f v1, Vec3f v2, Vec2i vt0, Vec2i vt1, Vec2i vt2,
 		
 		int tx;
 
-		if (vt2.y - vt0.y > 0)
+
+
+		if (vt2.y != vt0.y)
 		{
-			tx = vt0.x + ((vt1.y - vt0.y) / (vt2.y - vt0.y)) * (vt2.x - vt0.x);
+			tx = vt2.x + (((float)vt1.y - (float)vt2.y) / ((float)vt0.y - (float)vt2.y)) * ((float)vt0.x - (float)vt2.x);
 		}
 		else
 		{
 			tx = vt0.x;
 		}
+
+
 
 		temp = { x, v1.y, z }; // New vertex
 		tempt = { tx, vt1.y }; // New texture coords
@@ -152,11 +153,15 @@ void drawTriangle(Vec3f v0, Vec3f v1, Vec3f v2, Vec2i vt0, Vec2i vt1, Vec2i vt2,
 	}
 }
 
+
 void drawTriangleTop(Vec3f v0, Vec3f v1, Vec3f v2, Vec2i vt0, Vec2i vt1, Vec2i vt2, TGAImage &image, TGAImage texture, float diffuse)
 {
 	// Make sure are left and right
 	if (v1.x > v2.x)
+	{
 		std::swap(v1, v2);
+		std::swap(vt1, vt2);
+	}
 
 	//     v0
 	//    |  |
@@ -212,7 +217,10 @@ void drawTriangleBottom(Vec3f v0, Vec3f v1, Vec3f v2, Vec2i vt0, Vec2i vt1, Vec2
 {
 	// Make sure are left and right
 	if (v0.x > v1.x)
+	{
 		std::swap(v0, v1);
+		std::swap(vt0, vt1);
+	}
 
 	// V0 ----- v1
 	//   |     |
