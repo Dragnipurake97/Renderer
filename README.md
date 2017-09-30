@@ -9,3 +9,4 @@ The rasterizer can currently display a the triangles of a .obj file in with some
 ## Resources Used
 - https://github.com/ssloy/tinyrenderer
 - http://www.sunshine2k.de/coding/java/TriangleRasterization/TriangleRasterization.html
+- https://www.scratchapixel.com/lessons/3d-basic-rendering/rasterization-practical-implementation
