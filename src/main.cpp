@@ -116,40 +116,26 @@ void drawTriangle(Vec3f v0, Vec3f v1, Vec3f v2, Vec2i vt0, Vec2i vt1, Vec2i vt2,
 	vt1 = texture_coords[1];
 	vt2 = texture_coords[2];
 
-	if ((int)points[0].y == (int)points[1].y) // If flat on top
-	{
-		drawTriangleBottom(points[0], points[1], points[2], texture_coords[0], texture_coords[1], texture_coords[2], image, texture, diffuse);
-	}
-	else if((int)points[1].y == (int)points[2].y) // If flat on bottom
-	{
-		drawTriangleTop(points[0], points[1], points[2], texture_coords[0], texture_coords[1], texture_coords[2], image, texture, diffuse);
-	}
-	else 	// Else triangle needs to be split
-	{
-		// Find new vertex to split triangle
-		float x = v0.x + ((v1.y - v0.y) / (v2.y - v0.y)) * (v2.x - v0.x);
-		float z = v0.z + ((v1.y - v0.y) / (v2.y - v0.y)) * (v2.z - v0.z);
-		
-		int tx;
-
-
-
-		if (vt2.y != vt0.y)
+		if ((int)points[0].y == (int)points[1].y) // If flat on top
 		{
-			tx = vt2.x + (((float)vt1.y - (float)vt2.y) / ((float)vt0.y - (float)vt2.y)) * ((float)vt0.x - (float)vt2.x);
+			drawTriangleBottom(points[0], points[1], points[2], texture_coords[0], texture_coords[1], texture_coords[2], image, texture, diffuse);
 		}
-		else
+		else if((int)points[1].y == (int)points[2].y) // If flat on bottom
 		{
-			tx = vt0.x;
+			drawTriangleTop(points[0], points[1], points[2], texture_coords[0], texture_coords[1], texture_coords[2], image, texture, diffuse);
 		}
+		else 	// Else triangle needs to be split
+		{
 
+			// Find new vertex to split triangle
+			float x = v2.x + ((v1.y - v2.y) / (v0.y - v2.y)) * (v0.x - v2.x);
+			float z = v2.z + ((v1.y - v2.y) / (v0.y - v2.y)) * (v0.z - v2.z);
+			temp = { x, v1.y, z }; // New vertex
 
+			tempt = vt2 + ((vt0 - vt2) * ((temp.y - v2.y) / (v0.y - v2.y)));
 
-		temp = { x, v1.y, z }; // New vertex
-		tempt = { tx, vt1.y }; // New texture coords
-
-		drawTriangleTop(v0, temp, v1, vt0, tempt, vt1, image, texture, diffuse);
-		drawTriangleBottom(v1, temp, v2, vt1, tempt, vt2, image, texture, diffuse);
+			drawTriangleTop(v0, temp, v1, vt0, tempt, vt1, image, texture, diffuse);
+			drawTriangleBottom(v1, temp, v2, vt1, tempt, vt2, image, texture, diffuse);
 	}
 }
 
